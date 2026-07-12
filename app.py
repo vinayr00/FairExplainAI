@@ -11,7 +11,8 @@ if __name__ == "__main__":
     try:
         import streamlit.web.cli as stcli
     except ImportError:
-        import streamlit.cli as stcli
+        import importlib
+        stcli = importlib.import_module("streamlit.cli")
     
     # Run the dashboard app entry point
     sys.argv = ["streamlit", "run", str(root_dir / "src" / "dashboard" / "app.py")]
