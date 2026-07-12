@@ -1,3 +1,6 @@
+import os
+os.environ["NUMBA_DISABLE_JIT"] = "1"
+
 import streamlit as st
 from pathlib import Path
 
