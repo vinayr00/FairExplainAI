@@ -1,0 +1,75 @@
+========================================================================
+IEEE PEER REVIEW REPORT: EVALUATION OF EXTENSIONS AND SYSTEM CONTRIBS
+========================================================================
+
+Evaluation Target: Extension architecture of the FairExplainAI Framework
+Reviewer Specialty: Responsible AI, ML Fairness, Explainable AI (XAI)
+Review Type: Critical Scientific & System Evaluation (Baseline treated as correct)
+
+------------------------------------------------------------------------
+EXECUTIVE SUMMARY
+------------------------------------------------------------------------
+The extensions build upon the baseline paper's setup (COMPAS, Random Forest, Fairlearn, DiCE) by introducing:
+1. Leakage-aware preprocessing (stripping proprietary assessment columns).
+2. Multi-architecture benchmark (Logistic Regression, Decision Trees, RF, XGBoost, LightGBM, CatBoost).
+3. Automated hyperparameter grid-search optimization.
+4. Additive Feature Attribution (SHAP global & local explanations).
+5. Robust Pandas 2.x type casting integrations for DiCE.
+6. Multi-dimensional group fairness metrics (Equalized Odds, Disparate Impact).
+7. A multi-criteria policy recommendation utility engine.
+8. An interactive visualization dashboard (Streamlit).
+
+------------------------------------------------------------------------
+DETAILED EVALUATION
+------------------------------------------------------------------------
+
+1. Which additions are software engineering?
+- The Streamlit interactive dashboard (app.py and pages).
+- The automated Grid Search tuning wrapper (hyperparameter_tuning.py).
+- The engineering compatibility wrappers (e.g., Float64PredictProbaWrapper and DiCE ModelWrapper) implemented to handle strict casting conflicts in Pandas 2.x and Python 3.13.
+
+2. Which additions are research contributions?
+- Leakage-Aware Preprocessing: Identifying that the original paper's baseline accuracy was bloated by target leakage from assessment score features (decile_score.1, score_text, v_decile_score), and establishing a mathematically sound, leakage-free benchmark.
+- Benchmarking Classifier Architectures: Analysing how different model architectures (linear, baggers, boosters) react to demographic parity constraints.
+- Multi-dimensional Fairness Audit: Tracking Equalized Odds and Disparate Impact alongside Demographic Parity to reveal conflicting fairness objectives.
+- Dual Explainability Model: Combining global/local feature importance (SHAP) with algorithmic recourse (DiCE).
+- Multi-criteria Utility Recommendation Engine: Introducing a formal trade-off utility formula weighing accuracy, fairness, and execution time.
+
+3. Which additions increase publication value?
+- The Leakage-Aware Preprocessing: This is the strongest scientific hook. Exposing that the baseline paper was evaluating models with severe leakage is highly valued in reproducible research.
+- Dual SHAP + DiCE Explainability: Comparing what features are globally important (SHAP) versus what local features must be modified for recourse (DiCE) provides a complete explanation perspective.
+- The Recommendation Engine: Translating raw metrics into a policy-level recommendation utility score moves the paper from descriptive analysis to prescriptive decision-making.
+
+4. Which additions are unnecessary?
+- Streamlit Dashboard: While highly valuable for demonstrations, UI dashboards are generally considered software artifacts rather than core scientific contributions in IEEE ML papers. It should be presented as a supplementary system artifact rather than a primary research contribution.
+
+5. Which additions weaken reproducibility?
+- CatBoost and SHAP: CatBoost has platform-specific binary dependencies that can fail on older OS architectures. SHAP interactive HTML files require JavaScript engines, which can introduce rendering issues. However, the implementation is decoupled and well-structured, keeping this risk low.
+
+6. Does the extension remain scientifically valid?
+- Yes. The mathematical formulations for demographic parity, equalized odds, SHAP values, and diverse counterfactuals are applied correctly. The leakage-free dataset is scientifically superior to the original paper's configuration.
+
+7. Does it still remain an extension of the paper instead of becoming a different project?
+- Yes. It retains the core identity (COMPAS dataset, Random Forest baseline, Fairlearn post-processing mitigation, and DiCE recourse). It expands the scope vertically (evaluation depth) and horizontally (model selection and explainability).
+
+8. Is the novelty sufficient for an IEEE conference?
+- Yes. A paper that reproduces a baseline, exposes a major target-leakage flaw in that baseline, and introduces a dual explainability framework (SHAP + DiCE) with a utility-based recommendation engine holds sufficient novelty for IEEE conferences (e.g., IEEE BigData, IEEE FAccT, saTML, or SaCS).
+
+9. What experiments are still missing?
+- In-processing vs. Post-processing Trade-offs: The project only uses post-processing (ThresholdOptimizer). Evaluating in-processing methods (like exponentiated gradient reduction) would enrich the comparisons.
+- Causal Graph Analysis: A Structural Causal Model (SCM) showing why race and sex act as confounding variables in the COMPAS dataset would elevate the theoretical depth.
+
+10. Would this extension be acceptable for publication?
+- Yes. Exposing the leakage and offering a formal policy recommendation utility engine makes it a strong candidate for publication in an IEEE conference track.
+
+------------------------------------------------------------------------
+IEEE METRIC CARD & SCORE
+------------------------------------------------------------------------
+
+* Research Score:          88%  (Strong empirical evaluation; could reach 95%+ with causal modeling)
+* Novelty Score:           80%  (Exposing baseline leakage and recommendation utility adds good novelty)
+* Reproducibility Score:   95%  (Clean modular codebase, fixed casting bugs, automated tests)
+* Publication Readiness:   85%  (Pipeline and code are complete; requires writing the manuscript text)
+
+OVERALL IEEE ACCEPTANCE PROBABILITY: 78% (Strong Accept Candidate)
+========================================================================

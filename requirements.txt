@@ -1,0 +1,27 @@
+# Data processing and analysis
+numpy>=1.22.0
+pandas>=1.4.0
+
+# Machine learning
+scikit-learn>=1.0.0
+
+# Fairness
+fairlearn>=0.7.0
+aif360>=0.5.0
+
+# Explainability
+shap>=0.40.0
+lime>=0.2.0
+
+# Dashboard and UI
+streamlit>=1.8.0
+
+# Visualization
+matplotlib>=3.5.0
+seaborn>=0.11.0
+
+# Notebooks and utilities
+ipykernel
+jupyter
+tqdm
+pytest
