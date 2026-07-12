@@ -16,6 +16,7 @@ fairlearn>=0.10.0
 aif360>=0.6.1
 
 # Explainability
+numba>=0.63.0
 shap>=0.46.0
 lime>=0.2.0
 dice-ml>=0.11
