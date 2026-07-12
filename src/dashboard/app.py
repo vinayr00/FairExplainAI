@@ -103,6 +103,46 @@ def main():
     - **Experiment F**: Counterfactual Explanations via DiCE.
     - **Experiment H**: Multi-Criteria recommendation engine selection.
     """)
+
+    st.subheader("⚙️ System Architecture & Pipeline Flow")
+    st.code("""
+  [ Raw Dataset (COMPAS / Adult) ]
+                 │
+                 ▼
+     [ Preprocessing & Adapter ]
+                 │
+                 ▼
+  [ Baseline / Extended Features ]
+                 │
+                 ▼
+     [ Model Training & Tuning ]
+                 │
+                 ▼
+   [ Explainability & Fairness ] ──► [ SHAP & DiCE Counterfactuals ]
+                 │
+                 ▼
+   [ Recommendation Engine ] ────► [ Multi-Criteria Ranking (AHP) ]
+                 │
+                 ▼
+        [ Policy Decision ]
+    """, language="text")
+
+    col_cont, col_caps = st.columns(2)
+    with col_cont:
+        st.markdown("### 🔬 Research Contribution")
+        st.markdown("""
+        This framework extends the ethically-aware AI benchmark by proposing:
+        - **Leakage-Aware Preprocessing**: Removing circular output predictors (e.g. COMPAS scores) to evaluate base demographics directly.
+        - **Multi-Model Evaluation**: Testing tree structures (XGBoost, LightGBM, CatBoost) alongside traditional classifiers.
+        - **Post-Processing Mitigation**: Applying `ThresholdOptimizer` constraints (Demographic Parity, Equal Opportunity) dynamically.
+        """)
+    with col_caps:
+        st.markdown("### 🛠️ System Capabilities")
+        st.markdown("""
+        - **Cross-Dataset Performance**: Run benchmark evaluations on both the criminal justice **COMPAS** dataset and the socio-economic **Adult Income** dataset.
+        - **Interactive Local Explainability**: Tweak query cases to visually trace decision changes using SHAP waterfalls and DiCE counterfactuals.
+        - **Interactive Policy Query**: Adjust weights dynamically to score accuracy vs fairness trade-offs.
+        """)
  
 if __name__ == "__main__":
     main()

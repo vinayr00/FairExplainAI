@@ -8,6 +8,7 @@ from sklearn.model_selection import train_test_split
 from configs.config import PROCESSED_PATH, RANDOM_STATE, TEST_SIZE, TARGET_COLUMN
 from src.models.model_factory import ModelFactory
 from src.explainability.shap_explainer import generate_shap_values
+from src.dashboard.utils.caching import get_train_test_splits, get_cached_model, get_cached_shap_explainer_and_values
 
 def main():
     st.set_page_config(page_title="SHAP Explanations - FairExplainAI", layout="wide")
@@ -31,13 +32,7 @@ def main():
         st.error(f"Processed datasets not found for {dataset.upper()}. Run main.py first.")
         return
 
-    df = pd.read_csv(extended_path)
-    X = df.drop(columns=[target_column])
-    y = df[target_column]
-
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=TEST_SIZE, random_state=RANDOM_STATE, stratify=y
-    )
+    X_train, X_test, y_train, y_test, _, _ = get_train_test_splits(dataset)
 
     st.sidebar.title("SHAP Config")
     model_choice = st.sidebar.selectbox("Model to Explain", ["random_forest", "xgboost", "logistic_regression"])
@@ -46,12 +41,11 @@ def main():
     
     # Train/load model on the fly to get explainer
     try:
-        model = ModelFactory.get_model(model_choice, random_state=RANDOM_STATE)
-        model.fit(X_train, y_train)
+        model = get_cached_model(dataset, model_choice)
 
         # Plot beeswarm summary plot for a small sample of test instances for speed
         with st.spinner("Computing global SHAP values..."):
-            shap_values = generate_shap_values(model, X_test.iloc[:100])
+            shap_values = get_cached_shap_explainer_and_values(dataset, model_choice)
             
             fig, ax = plt.subplots(figsize=(8, 5))
             values_to_plot = shap_values

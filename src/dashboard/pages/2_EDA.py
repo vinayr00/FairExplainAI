@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
 from configs.config import PROCESSED_PATH
+from src.dashboard.utils.caching import load_dataset_raw, load_dataset_encoded
 
 def main():
     st.set_page_config(page_title="EDA - FairExplainAI", layout="wide")
@@ -27,7 +28,7 @@ def main():
         st.error(f"Processed dataset files not found for {dataset.upper()}. Please run the training pipeline first.")
         return
 
-    df = pd.read_csv(extended_raw_path)
+    df = load_dataset_raw(dataset)
 
     # Set style for plots
     sns.set_theme(style="whitegrid")
@@ -83,15 +84,25 @@ def main():
 
     # Correlation Matrix
     st.subheader("🔗 Feature Correlation Heatmap")
-    extended_encoded_path = processed_dir / f"{dataset}_extended.csv"
-    if extended_encoded_path.exists():
-        df_encoded = pd.read_csv(extended_encoded_path)
+    try:
+        df_encoded = load_dataset_encoded(dataset)
         corr = df_encoded.corr()
-        fig, ax = plt.subplots(figsize=(10, 8))
-        sns.heatmap(corr, annot=False, cmap="coolwarm", fmt=".2f", linewidths=0.5, ax=ax)
+        
+        # If columns > 20, select top 20 columns correlated with target for readability
+        if df_encoded.shape[1] > 20:
+            target_corr = corr[target_column].abs().sort_values(ascending=False)
+            top_features = target_corr.head(20).index.tolist()
+            corr_subset = df_encoded[top_features].corr()
+            fig, ax = plt.subplots(figsize=(12, 10))
+            sns.heatmap(corr_subset, annot=True, cmap="coolwarm", fmt=".2f", linewidths=0.5, ax=ax, annot_kws={"size": 7})
+            st.info("💡 High-dimensional feature set detected. Heatmap is showing the top 20 features with the highest absolute correlation to the target column for readability.")
+        else:
+            fig, ax = plt.subplots(figsize=(10, 8))
+            sns.heatmap(corr, annot=True, cmap="coolwarm", fmt=".2f", linewidths=0.5, ax=ax)
+            
         st.pyplot(fig)
         plt.close()
-    else:
+    except Exception:
         st.info("Run the training pipeline to generate the encoded feature set for correlation analysis.")
 
 if __name__ == "__main__":
