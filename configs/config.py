@@ -23,10 +23,16 @@ DATASET_CONFIG = {
 }
 
 # Dynamic Lookups based on selected dataset
-DATASET_PATH = DATASET_CONFIG[DATASET]["dataset_path"]
-TARGET_COLUMN = DATASET_CONFIG[DATASET]["target"]
-PROTECTED_ATTRIBUTES = DATASET_CONFIG[DATASET]["protected"]
-SENSITIVE_ATTRIBUTE = DATASET_CONFIG[DATASET]["sensitive"]
+def __getattr__(name):
+    if name == "DATASET_PATH":
+        return DATASET_CONFIG[DATASET]["dataset_path"]
+    elif name == "TARGET_COLUMN":
+        return DATASET_CONFIG[DATASET]["target"]
+    elif name == "PROTECTED_ATTRIBUTES":
+        return DATASET_CONFIG[DATASET]["protected"]
+    elif name == "SENSITIVE_ATTRIBUTE":
+        return DATASET_CONFIG[DATASET]["sensitive"]
+    raise AttributeError(f"module {__name__} has no attribute {name}")
 
 PROCESSED_PATH = "data/processed/"
 

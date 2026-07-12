@@ -101,8 +101,14 @@ FEATURE_CONFIG = {
     }
 }
 
-CATEGORICAL_FEATURES = FEATURE_CONFIG[DATASET]["categorical"]
-NUMERICAL_FEATURES = FEATURE_CONFIG[DATASET]["numerical"]
+def __getattr__(name):
+    if name == "CATEGORICAL_FEATURES":
+        import configs.config as cfg
+        return FEATURE_CONFIG[cfg.DATASET]["categorical"]
+    elif name == "NUMERICAL_FEATURES":
+        import configs.config as cfg
+        return FEATURE_CONFIG[cfg.DATASET]["numerical"]
+    raise AttributeError(f"module {__name__} has no attribute {name}")
 
 # -----------------------------
 # Columns to drop during loading / cleaning

@@ -1,0 +1,230 @@
+================================================================================
+FAIREXPLAINAI: ETHICALLY-AWARE BIAS CORRECTION & EXPLAINABILITY FRAMEWORK
+================================================================================
+Author: Senior Machine Learning Engineer / Research Reviewer
+Project Context: Extension of "Ethically-Aware AI: Bias Correction via Counterfactual Explanation in ML"
+Target Audience: IEEE Research Presentation / Project Walkthrough
+
+This presentation document details every step of the FairExplainAI framework,
+explaining the scientific methodology, system architecture, data processing,
+fairness optimization, explainability integration, and policy recommendations.
+
+--------------------------------------------------------------------------------
+TABLE OF CONTENTS
+--------------------------------------------------------------------------------
+1. Introduction & Research Objectives
+2. High-Level System Architecture
+3. Step 1: Dataset Adapters & Loading (COMPAS & Adult)
+4. Step 2: Preprocessing, Cleaning & Leakage Elimination
+5. Step 3: Feature Configuration & Encoding
+6. Step 4: Multi-Model Training & Hyperparameter Tuning
+7. Step 5: Fairness Assessment & Post-Processing Mitigation
+8. Step 6: Explainability Pipeline (SHAP & DiCE)
+9. Step 7: Multi-Criteria Recommendation Engine (AHP)
+10. Step 8: Interactive Streamlit Dashboard & Caching Layer
+
+================================================================================
+1. INTRODUCTION & RESEARCH OBJECTIVES
+================================================================================
+Historically, machine learning models deployed in high-stakes socio-technical 
+domains (such as criminal justice recidivism scoring or economic mortgage/credit 
+underwriting) have unintentionally learned and amplified societal biases.
+
+The baseline research paper ("Ethically-Aware AI: Bias Correction via 
+Counterfactual Explanation in ML") demonstrated how to correct model biases. 
+This project, FairExplainAI, extends that work into a robust, dataset-independent 
+framework by:
+- Mitigating target leakage (e.g., removing proprietary COMPAS decile scores).
+- Broadening model selection (introducing boosting models like XGBoost, LightGBM,
+  and CatBoost).
+- Applying post-processing threshold adjustments for fairness.
+- Integrating SHAP and DiCE explainer pipelines for global and local auditability.
+- Combining all parameters into an Analytic Hierarchy Process (AHP) to recommend 
+  the best-suited policy model.
+
+================================================================================
+2. HIGH-LEVEL SYSTEM ARCHITECTURE
+================================================================================
+The project operates as a linear, modular pipeline where each step feeds directly 
+into the next, culminating in an interactive user interface:
+
+    [ Raw Dataset: COMPAS / Adult ]
+                  │
+                  ▼
+       [ Step 1: Adapter Layer ]
+                  │
+                  ▼
+     [ Step 2: Data Cleaning & Leakage Elimination ]
+                  │
+                  ▼
+       [ Step 3: Feature Encoding (One-Hot) ]
+                  │
+                  ▼
+     [ Step 4: Model Training & Grid Search Tuning ]
+                  │
+                  ▼
+     [ Step 5: Fairness Mitigation (Threshold Optimization) ]
+                  │
+                  ▼
+    [ Step 6: Explainability Pipeline (SHAP & DiCE) ]
+                  │
+                  ▼
+     [ Step 7: AHP Recommendation Engine ]
+                  │
+                  ▼
+     [ Step 8: Interactive Streamlit UI & Caching ]
+
+================================================================================
+3. STEP 1: DATASET ADAPTERS & LOADING
+================================================================================
+To maintain a dataset-independent pipeline, the project utilizes the Adapter 
+Pattern. This decouples the loading code from the rest of the pipeline.
+
+- CompasAdapter (src/preprocessing/compas_adapter.py):
+  Loads the raw 'compas-scores-two-years.csv' dataset containing offender 
+  demographics, history, and recidivism records.
+- AdultAdapter (src/preprocessing/adult_adapter.py):
+  Loads and concatenates the split 'adult.data' and 'adult.test' income files, 
+  normalizes whitespaces, strips trailing test characters, and maps target income 
+  categories (<=50K to 0, >50K to 1).
+
+By returning uniform Pandas DataFrames, the adapters ensure that the downstream 
+cleaning, training, and explainer modules remain identical regardless of the source.
+
+================================================================================
+4. STEP 2: PREPROCESSING, CLEANING & LEAKAGE ELIMINATION
+================================================================================
+A core scientific contribution of this framework is the elimination of 
+"Target Leakage" in the COMPAS dataset:
+- The proprietary COMPAS tool outputs features like `decile_score`, `score_text`, 
+  and `v_decile_score`. Including these in a machine learning training set 
+  creates circular target leakage: the model simply replicates the proprietary 
+  black-box scorer rather than learning patterns from the offender's actual history.
+- The DataCleaner (src/preprocessing/data_cleaner.py) explicitly drops these circular 
+  markers, forcing the classifiers to learn directly from demographic and historical 
+  criminal characteristics.
+
+Additionally, the preprocessing steps implement ProPublica's filtering rules:
+1. Days Between Screening and Arrest: Removes records where screening occurred 
+   more than 30 days before or after the arrest (filters out unrelated charges).
+2. Invalid Recidivism Tracking: Drops records where `is_recid` is -1.
+3. Charge Severity Filter: Filters out minor traffic violations (degree 'O').
+
+For the Adult dataset, the cleaner handles missing value normalization (standardizing 
+"?" to NaN) and drops rows missing the target variable.
+
+================================================================================
+5. STEP 3: FEATURE CONFIGURATION & ENCODING
+================================================================================
+ML algorithms require numerical matrices, so categorical text columns must be 
+encoded:
+- CategoricalEncoder (src/preprocessing/encoder.py):
+  Utilizes Scikit-learn's `OneHotEncoder` (with `handle_unknown="ignore"` to handle 
+  unseen categories in deployment).
+- The baseline dataset preserves columns corresponding to the original paper.
+- The extended dataset removes circular markers and applies one-hot encoding 
+  across categorical columns, expanding high-cardinality features like Adult 
+  occupations, native countries, and work classes into 109 binary columns.
+
+Downstream tasks rely on `src/preprocessing/feature_config.py` to identify which 
+columns represent continuous features vs categorical variables.
+
+================================================================================
+6. STEP 4: MULTI-MODEL TRAINING & HYPERPARAMETER TUNING
+================================================================================
+We evaluate performance across 6 diverse model architectures:
+1. Logistic Regression: Linear baseline.
+2. Decision Tree: Non-linear, interpretable baseline.
+3. Random Forest: Bagged ensemble (reproducing the original paper's model).
+4. XGBoost: Gradient boosted trees with regularization.
+5. LightGBM: Leaf-wise tree growth optimized for speed.
+6. CatBoost: Built-in categorical ordering.
+
+- ModelFactory (src/models/model_factory.py):
+  Handles initialization of all 6 architectures.
+- Hyperparameter Tuning (src/models/hyperparameter_tuning.py):
+  Performs Systematic Grid Search on pre-specified parameter grids in 
+  `configs/config.py` (C for Logistic Regression; max_depth for trees; 
+  learning_rate and estimators for boosters).
+  Saves the best parameters and fits the optimal estimators on the training split.
+
+================================================================================
+7. STEP 5: FAIRNESS ASSESSMENT & POST-PROCESSING MITIGATION
+================================================================================
+Model predictions are evaluated across protected attributes (Sex and Race) to 
+detect systemic disparities.
+
+Fairness Metrics (src/fairness/metrics.py):
+1. Demographic Parity Difference: The difference in selection rates (favorable 
+   outcome probability) between the most and least favored groups. (Goal: 0)
+2. Equalized Odds Difference: The maximum difference in True Positive Rates (TPR) 
+   and False Positive Rates (FPR) across groups. (Goal: 0)
+3. Equal Opportunity: The difference in TPR across groups.
+4. Disparate Impact Ratio: The ratio of selection rate of the unprivileged group 
+   to the privileged group. (Goal: >= 0.80 for the four-fifths rule).
+
+Fairness Mitigation (src/fairness/threshold_optimizer.py):
+- Utilizing FairLearn's `ThresholdOptimizer`, we apply post-processing adjustments 
+  to the base classifier's probability thresholds.
+- Rather than altering the underlying model features or weights, this approach 
+  optimizes decision thresholds per sensitive group to enforce constraints like 
+  demographic parity or equalized odds, creating a fairer output distribution 
+  without requiring model retraining.
+
+================================================================================
+8. STEP 6: EXPLAINABILITY PIPELINE (SHAP & DICE)
+================================================================================
+A fair model must also be auditable and interpretable. We integrate global 
+and local explainability:
+
+Global & Local SHAP (src/explainability/shap_explainer.py):
+- SHAP (SHapley Additive exPlanations) values assign an importance score to 
+  each feature for a given prediction based on cooperative game theory.
+- Global SHAP: A beeswarm plot shows how each feature pushes the model's 
+  prediction higher or lower across 100 test instances.
+- Local SHAP: A waterfall plot explains a single offender/individual's score, 
+  tracing feature contributions from the model's base expected rate.
+
+Local DiCE Counterfactuals (src/explainability/dice_explainer.py):
+- DiCE (Diverse Counterfactual Explanations) generates counterfactual profiles.
+- It answers the query: "What is the minimal set of changes (e.g., age, criminal 
+  history, or employment status) that would flip this individual's prediction 
+  from 'High Risk' to 'Low Risk' (or '<=50K' to '>50K')?"
+- It optimizes for diversity and proximity to show actionable recourses.
+
+================================================================================
+9. STEP 7: MULTI-CRITERIA RECOMMENDATION ENGINE
+================================================================================
+Deploying model policies requires balancing trade-offs. The Recommendation Engine 
+(src/evaluation/recommendation_engine.py) ranks all models using a multi-criteria 
+Analytic Hierarchy Process (AHP):
+- Inputs: Accuracy, F1-Score, ROC-AUC, Demographic Parity, Equalized Odds, 
+  Training Time, and Inference Time.
+- Weights: Categorized into Performance (40%), Fairness (40%), and Efficiency (20%).
+- Scoring: Computes a composite utility score between 0.0 and 1.0.
+- Recommendation: Outputs the model with the highest utility score along with a 
+  written policy justification (e.g., "CatBoost is recommended as it achieves 
+  85.2% accuracy while maintaining a demographic parity disparity of only 0.02").
+
+================================================================================
+10. STEP 8: INTERACTIVE STREAMLIT DASHBOARD & CACHING LAYER
+================================================================================
+The entire pipeline is wrapped in a Streamlit multi-page dashboard. To ensure a 
+production-ready, premium user experience, we implemented a caching layer:
+
+Dynamic Cache Invalidation (src/dashboard/utils/caching.py):
+- Functions like `load_dataset_raw`, `get_train_test_splits`, `get_cached_model`, 
+  and `get_cached_dice_explainer` take `dataset` (e.g., `"compas"` or `"adult"`) 
+  as their first argument.
+- When a user changes the dataset in the sidebar, Streamlit automatically 
+  invalidates the old cache values, preventing data leakages or cross-dataset 
+  stale variables.
+- We cache only the initialized DiCE explainer objects rather than final counterfactual 
+  dataframes. This ensures changing parameters (like Case Profile Index or number 
+  of CFs) triggers a live, correct, and responsive counterfactual generation.
+- The EDA page correlation heatmap dynamically displays the top 20 correlated 
+  features if the column count is high (preventing browser crash/clutter on 
+  Adult's 109 features).
+- Startup pre-processing builds datasets dynamically in under 7 seconds if 
+  they are missing, making the application 100% self-sufficient.
+================================================================================

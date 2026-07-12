@@ -1,15 +1,15 @@
 import pandas as pd
 from typing import List, Optional
 from sklearn.preprocessing import OneHotEncoder
-from src.preprocessing.feature_config import CATEGORICAL_FEATURES
 
 class CategoricalEncoder:
     """Class to handle categorical variable encoding using one-hot encoding."""
 
     def __init__(self, categorical_columns: Optional[List[str]] = None, sparse: bool = False):
-        self.categorical_columns = (
-            categorical_columns if categorical_columns is not None else CATEGORICAL_FEATURES
-        )
+        if categorical_columns is None:
+            from src.preprocessing.feature_config import CATEGORICAL_FEATURES
+            categorical_columns = CATEGORICAL_FEATURES
+        self.categorical_columns = categorical_columns
         self.encoder = OneHotEncoder(sparse_output=sparse, handle_unknown="ignore")
         self.encoded_feature_names_: List[str] = []
         self.is_fitted = False

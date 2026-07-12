@@ -9,7 +9,7 @@ This script runs the preprocessing pipeline to generate:
 import logging
 from pathlib import Path
 import pandas as pd
-from configs.config import DATASET_PATH, PROCESSED_PATH, TARGET_COLUMN
+from configs.config import PROCESSED_PATH
 from src.preprocessing.data_cleaner import DataCleaner
 from src.preprocessing.encoder import CategoricalEncoder
 from src.utils.logger import setup_logger
@@ -18,6 +18,7 @@ logger = setup_logger("build_dataset", "logs/preprocessing.log")
 
 def validate_dataset(df: pd.DataFrame, label: str):
     """Performs validation checks on the processed dataset."""
+    import configs.config as cfg
     logger.info(f"Validating {label} dataset...")
     
     # Check shape
@@ -27,8 +28,8 @@ def validate_dataset(df: pd.DataFrame, label: str):
         raise ValueError(f"Error: {label} dataset has 0 columns.")
         
     # Check for missing target column
-    if TARGET_COLUMN not in df.columns:
-        raise ValueError(f"Error: Target column '{TARGET_COLUMN}' is missing in {label} dataset.")
+    if cfg.TARGET_COLUMN not in df.columns:
+        raise ValueError(f"Error: Target column '{cfg.TARGET_COLUMN}' is missing in {label} dataset.")
         
     # Check for missing values in critical columns
     null_counts = df.isnull().sum()
