@@ -13,23 +13,29 @@ from src.evaluation.plots import plot_confusion_matrix
 def main():
     st.set_page_config(page_title="Model Training - FairExplainAI", layout="wide")
     
+    from src.dashboard.components.sidebar import render_sidebar
+    dataset = render_sidebar()
+    
+    from configs.config import DATASET_CONFIG
+    target_column = DATASET_CONFIG[dataset]["target"]
+    
     st.title("⚙️ Model Training & Experiments")
-    st.markdown("""
-    Train and customize machine learning classifiers on the processed COMPAS datasets. 
+    st.markdown(f"""
+    Train and customize machine learning classifiers on the processed **{dataset.upper()}** datasets. 
     Select a model, adjust hyperparameters, and instantly review test set performance.
     """)
 
     processed_dir = Path(PROCESSED_PATH)
-    extended_path = processed_dir / "compas_extended.csv"
+    extended_path = processed_dir / f"{dataset}_extended.csv"
 
     if not extended_path.exists():
-        st.error("Processed datasets not found. Run main.py first.")
+        st.error(f"Processed datasets not found for {dataset.upper()}. Run main.py first.")
         return
 
     # Load data on-the-fly for interactive training
     df = pd.read_csv(extended_path)
-    X = df.drop(columns=[TARGET_COLUMN])
-    y = df[TARGET_COLUMN]
+    X = df.drop(columns=[target_column])
+    y = df[target_column]
 
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=TEST_SIZE, random_state=RANDOM_STATE, stratify=y

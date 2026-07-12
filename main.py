@@ -9,7 +9,7 @@ from pathlib import Path
 from sklearn.model_selection import train_test_split
 
 from configs.config import (
-    RANDOM_STATE, TEST_SIZE, TARGET_COLUMN,
+    RANDOM_STATE, TEST_SIZE, TARGET_COLUMN, SENSITIVE_ATTRIBUTE, DATASET,
     DATASET_PATH, PROCESSED_PATH, LOGS_DIR,
     RESULTS_DIR, FIGURES_DIR, REPORTS_DIR,
     SAVED_MODELS_DIR, MODELS_LIST, RECOMMENDATION_PRIORITIES
@@ -35,8 +35,8 @@ logger = setup_logger("FairExplainAI", LOGS_DIR / "app.log")
 
 def load_split_data(dataset_name: str):
     """Loads and splits the processed datasets into train/test sets."""
-    data_path = Path(PROCESSED_PATH) / f"compas_{dataset_name}.csv"
-    raw_path = Path(PROCESSED_PATH) / f"compas_{dataset_name}_raw.csv"
+    data_path = Path(PROCESSED_PATH) / f"{DATASET}_{dataset_name}.csv"
+    raw_path = Path(PROCESSED_PATH) / f"{DATASET}_{dataset_name}_raw.csv"
     
     if not data_path.exists() or not raw_path.exists():
         raise FileNotFoundError(f"Processed dataset files not found. Run build_dataset first.")
@@ -109,7 +109,7 @@ def main():
         
         # Compute performance and fairness metrics
         perf_metrics = evaluate_predictions(y_test_b, y_pred, y_prob)
-        fairness_summary = get_fairness_summary(y_test_b, y_pred, df_test_raw_b["race"])
+        fairness_summary = get_fairness_summary(y_test_b, y_pred, df_test_raw_b[SENSITIVE_ATTRIBUTE])
         
         # Combine
         baseline_record = {
@@ -166,7 +166,7 @@ def main():
         y_prob = rf_extended.predict_proba(X_test_e)[:, 1]
         
         perf_metrics = evaluate_predictions(y_test_e, y_pred, y_prob)
-        fairness_summary = get_fairness_summary(y_test_e, y_pred, df_test_raw_e["race"])
+        fairness_summary = get_fairness_summary(y_test_e, y_pred, df_test_raw_e[SENSITIVE_ATTRIBUTE])
         
         extended_rf_record = {
             "model_name": "RandomForest_Extended",
@@ -227,7 +227,7 @@ def main():
             y_prob = best_model.predict_proba(X_test_e)[:, 1] if hasattr(best_model, "predict_proba") else None
             
             perf_metrics = evaluate_predictions(y_test_e, y_pred, y_prob)
-            fairness_summary = get_fairness_summary(y_test_e, y_pred, df_test_raw_e["race"])
+            fairness_summary = get_fairness_summary(y_test_e, y_pred, df_test_raw_e[SENSITIVE_ATTRIBUTE])
             
             record = {
                 "model_name": f"{model_name}_Tuned",
@@ -266,11 +266,11 @@ def main():
                     constraint="demographic_parity"
                 )
                 
-                pipeline.fit(X_train_e, y_train_e, sensitive_features=df_train_raw_e["race"])
+                pipeline.fit(X_train_e, y_train_e, sensitive_features=df_train_raw_e[SENSITIVE_ATTRIBUTE])
                 
-                y_pred_mit = pipeline.predict(X_test_e, sensitive_features=df_test_raw_e["race"])
+                y_pred_mit = pipeline.predict(X_test_e, sensitive_features=df_test_raw_e[SENSITIVE_ATTRIBUTE])
                 perf_metrics_mit = evaluate_predictions(y_test_e, y_pred_mit)
-                fairness_summary_mit = get_fairness_summary(y_test_e, y_pred_mit, df_test_raw_e["race"])
+                fairness_summary_mit = get_fairness_summary(y_test_e, y_pred_mit, df_test_raw_e[SENSITIVE_ATTRIBUTE])
                 
                 mit_record = {
                     "model_name": f"{model_name}_Mitigated",
@@ -316,11 +316,12 @@ def main():
     try:
         # Load small dataset for DiCE interface
         query = X_test_e.iloc[[0]].copy()
-        extended_path = Path(PROCESSED_PATH) / "compas_extended.csv"
+        extended_path = Path(PROCESSED_PATH) / f"{DATASET}_extended.csv"
         df_extended = pd.read_csv(extended_path)
         
         # Select continuous columns
-        continuous_cols = ["age", "priors_count", "juv_fel_count", "juv_misd_count", "juv_other_count"]
+        from src.preprocessing.feature_config import NUMERICAL_FEATURES
+        continuous_cols = NUMERICAL_FEATURES
         
         dice_exp = generate_counterfactuals(
             model=best_rf_model,

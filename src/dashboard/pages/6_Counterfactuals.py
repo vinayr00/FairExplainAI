@@ -10,26 +10,32 @@ from src.explainability.dice_explainer import generate_counterfactuals
 def main():
     st.set_page_config(page_title="Counterfactuals - FairExplainAI", layout="wide")
     
+    from src.dashboard.components.sidebar import render_sidebar
+    dataset = render_sidebar()
+    
+    from configs.config import DATASET_CONFIG
+    target_column = DATASET_CONFIG[dataset]["target"]
+    
     st.title("🔀 DiCE Counterfactual Explanations")
-    st.markdown("""
-    Generate **Counterfactual Explanations** using the DiCE (Diverse Counterfactual Explanations) library.
-    Counterfactuals tell us: *What is the minimal set of changes (e.g. lowering priors count or increasing age) 
-    that would flip the model's prediction from recidivating (high-risk) to not recidivating (low-risk)?*
+    st.markdown(f"""
+    Generate **Counterfactual Explanations** using the DiCE (Diverse Counterfactual Explanations) library on the **{dataset.upper()}** dataset.
+    Counterfactuals tell us: *What is the minimal set of changes (e.g. changing numeric or categorical parameters) 
+    that would flip the model's prediction?*
     """)
 
     processed_dir = Path(PROCESSED_PATH)
-    extended_path = processed_dir / "compas_extended.csv"
-    extended_raw_path = processed_dir / "compas_extended_raw.csv"
+    extended_path = processed_dir / f"{dataset}_extended.csv"
+    extended_raw_path = processed_dir / f"{dataset}_extended_raw.csv"
 
     if not extended_path.exists() or not extended_raw_path.exists():
-        st.error("Processed datasets not found. Run main.py first.")
+        st.error(f"Processed datasets not found for {dataset.upper()}. Run main.py first.")
         return
 
     df = pd.read_csv(extended_path)
     df_raw = pd.read_csv(extended_raw_path)
 
-    X = df.drop(columns=[TARGET_COLUMN])
-    y = df[TARGET_COLUMN]
+    X = df.drop(columns=[target_column])
+    y = df[target_column]
 
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=TEST_SIZE, random_state=RANDOM_STATE, stratify=y
@@ -39,12 +45,12 @@ def main():
     model_choice = st.sidebar.selectbox("Model to Interrogate", ["random_forest", "logistic_regression"])
     total_cfs = st.sidebar.slider("Number of counterfactuals", 1, 4, 2)
 
-    st.subheader("Select Offender Case Profile")
+    st.subheader("Select Case Profile")
     case_idx = st.number_input("Case Index (from test set)", min_value=0, max_value=len(X_test)-1, value=0)
 
     # Show the raw profile
-    st.markdown("**Original Offender Profile:**")
-    original_profile = df_raw.iloc[[df_test_raw_idx := X_test.index[case_idx]]]
+    st.markdown("**Original Case Profile:**")
+    original_profile = df_raw.iloc[[X_test.index[case_idx]]]
     st.dataframe(original_profile, use_container_width=True)
 
     gen_btn = st.button("🔄 Generate Counterfactual Explanations")
@@ -61,17 +67,22 @@ def main():
                 
                 # Predict original label
                 orig_pred = int(model.predict(query_instance)[0])
-                st.write(f"**Original Model Prediction**: `{'High Risk (1)' if orig_pred == 1 else 'Low Risk (0)'}`")
+                if dataset == "compas":
+                    pred_label = 'High Risk (1)' if orig_pred == 1 else 'Low Risk (0)'
+                else:
+                    pred_label = '>50K (1)' if orig_pred == 1 else '<=50K (0)'
+                st.write(f"**Original Model Prediction**: `{pred_label}`")
 
                 # Define continuous columns
-                continuous_cols = ["age", "priors_count", "juv_fel_count", "juv_misd_count", "juv_other_count"]
+                from src.preprocessing.feature_config import NUMERICAL_FEATURES
+                continuous_cols = NUMERICAL_FEATURES
                 
                 # Call DiCE
                 dice_exp = generate_counterfactuals(
                     model=model,
                     query_instances=query_instance,
                     data_interface=df_raw,
-                    outcome_name=TARGET_COLUMN,
+                    outcome_name=target_column,
                     continuous_features=continuous_cols,
                     total_CFs=total_cfs
                 )

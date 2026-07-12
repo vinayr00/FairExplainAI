@@ -11,6 +11,13 @@ from src.fairness.metrics import get_fairness_summary, compute_fairness_metrics
 def main():
     st.set_page_config(page_title="Fairness - FairExplainAI", layout="wide")
     
+    from src.dashboard.components.sidebar import render_sidebar
+    dataset = render_sidebar()
+    
+    from configs.config import DATASET_CONFIG
+    target_column = DATASET_CONFIG[dataset]["target"]
+    protected_attrs = DATASET_CONFIG[dataset]["protected"]
+    
     st.title("⚖️ Bias Assessment & Mitigation")
     st.markdown("""
     Evaluate demographic biases and run fairness-aware mitigations. Use this section to run
@@ -18,29 +25,29 @@ def main():
     """)
 
     processed_dir = Path(PROCESSED_PATH)
-    extended_path = processed_dir / "compas_extended.csv"
-    extended_raw_path = processed_dir / "compas_extended_raw.csv"
+    extended_path = processed_dir / f"{dataset}_extended.csv"
+    extended_raw_path = processed_dir / f"{dataset}_extended_raw.csv"
 
     if not extended_path.exists() or not extended_raw_path.exists():
-        st.error("Processed datasets not found. Run main.py first.")
+        st.error(f"Processed datasets not found for {dataset.upper()}. Run main.py first.")
         return
 
     df = pd.read_csv(extended_path)
     df_raw = pd.read_csv(extended_raw_path)
 
-    X = df.drop(columns=[TARGET_COLUMN])
-    y = df[TARGET_COLUMN]
+    X = df.drop(columns=[target_column])
+    y = df[target_column]
 
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=TEST_SIZE, random_state=RANDOM_STATE, stratify=y
     )
     df_train_raw, df_test_raw = train_test_split(
-        df_raw, test_size=TEST_SIZE, random_state=RANDOM_STATE, stratify=df_raw[TARGET_COLUMN]
+        df_raw, test_size=TEST_SIZE, random_state=RANDOM_STATE, stratify=df_raw[target_column]
     )
 
     # Mitigation configuration in UI
     st.sidebar.title("Fairness Settings")
-    sensitive_attr = st.sidebar.selectbox("Sensitive Attribute", ["race", "sex"])
+    sensitive_attr = st.sidebar.selectbox("Sensitive Attribute", protected_attrs)
     constraint = st.sidebar.selectbox(
         "Mitigation Constraint", 
         ["demographic_parity", "equalized_odds", "true_positive_rate_parity"]

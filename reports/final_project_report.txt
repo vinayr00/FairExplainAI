@@ -1,0 +1,109 @@
+FAIREXPLAINAI - END-TO-END PROJECT REPORT
+==========================================
+
+This report documents the architectural updates, implementation details, model evaluation performance, and interactive dashboard state management enhancements designed to generalize FairExplainAI for multi-dataset evaluations (COMPAS and Adult Income).
+
+--------------------------------------------------------------------------------
+1. PROJECT OVERVIEW & RESEARCH OBJECTIVES
+--------------------------------------------------------------------------------
+FairExplainAI is an interactive auditing, mitigation, and explainability framework designed to evaluate machine learning biases. Originally developed specifically for the COMPAS recidivism dataset, this project generalizes the pipeline to support arbitrary datasets, specifically onboarding the Adult Income prediction task.
+
+Key Objectives Completed:
+- Baseline Reproduction (Experiment A): Replicating a baseline Random Forest model on raw datasets.
+- Leakage-Aware Preprocessing (Experiment B): Purging proxy labels, circular features (such as proprietary COMPAS decile scores), and formatting clean training frames.
+- Multi-Model Optimizations (Experiment C & G): Training LightGBM, XGBoost, CatBoost, Decision Trees, Random Forests, and Logistic Regressions with grid search tuning.
+- Fairness Audits & Mitigation (Experiment D): Computing demographic disparities and mitigating biases using Fairlearn's ThresholdOptimizer.
+- Explainability (Experiment E & F): Global/Local SHAP values and diverse counterfactual generations via DiCE.
+- Interactive Multi-Page Dashboard: A premium Streamlit interface exposing all stages with active dataset toggling and state persistence.
+
+
+--------------------------------------------------------------------------------
+2. MULTI-DATASET ARCHITECTURAL GENERALIZATION
+--------------------------------------------------------------------------------
+Architecture Flow:
+[configs/config.py] ---> [src/preprocessing/dataset_loader.py]
+                               |
+                               +---> [src/preprocessing/compas_adapter.py]
+                               +---> [src/preprocessing/adult_adapter.py]
+                               |
+                               v
+                     [src/preprocessing/data_cleaner.py]
+                               v
+                     [src/preprocessing/build_dataset.py]
+                               |
+                               +---> [data/processed/dataset_baseline_raw.csv]
+                               +---> [data/processed/dataset_extended.csv]
+
+Preprocessing Adapters:
+We structured data ingestion around an adapter pattern. Adapters sanitize raw fields, map target metrics, and ensure standardized feature types:
+1. compas_adapter.py: Handles ProPublica's screening window rules (removing bookings >30 days or <-30 days) and filters invalid recidivism rows.
+2. adult_adapter.py: Normalizes string column whitespaces, converts income target classes (<=50K and >50K) into binary indicators, and standardizes missing values.
+3. dataset_loader.py: A factory module resolving dataset paths and routing ingestion commands dynamically.
+
+Dynamic Pipeline Configuration:
+The system configuration configs/config.py was refactored to dynamically look up configuration definitions based on a DATASET state:
+- Target Columns: is_recid for COMPAS vs. income for Adult.
+- Sensitive Features: ['race', 'sex'] for COMPAS vs. ['race', 'sex'] for Adult.
+- Model Output Locations: Structured dynamically under results/{dataset}/comparison/.
+
+
+--------------------------------------------------------------------------------
+3. MODEL PERFORMANCE & EVALUATION RESULTS
+--------------------------------------------------------------------------------
+We ran full pipeline evaluations for both datasets. The models were evaluated on three primary dimensions: Performance (Accuracy, F1, ROC-AUC), Fairness (Demographic Parity & Equalized Odds differences), and Efficiency (Training & Inference latency).
+
+COMPAS Recidivism Performance Summary:
+- Baseline Features: 7,214 records, 19 features.
+- Extended/Clean Features: 6,172 records, 19 features (leakage-prone scores removed).
+
+| Model                      | Status         | Accuracy | F1-Score | ROC-AUC | DP Diff | EO Diff |
+| :------------------------- | :------------- | :------: | :------: | :-----: | :-----: | :-----: |
+| Random Forest (Baseline)   | Reproduction   |  63.60%  |  51.52%  |  68.61% |  0.2023 |  0.1652 |
+| Random Forest (Extended)   | Leakage-Free   |  63.90%  |  52.64%  |  69.11% |  0.5304 |  0.5147 |
+| XGBoost (Tuned)            | Grid Search    |  66.83%  |  56.40%  |  71.93% |  0.2241 |  0.1794 |
+| LightGBM (Tuned)           | Grid Search    |  65.65%  |  56.02%  |  71.39% |  0.2281 |  0.1982 |
+| Decision Tree (Tuned)      | Grid Search    |  65.89%  |  56.24%  |  70.84% |  0.1984 |  0.1492 |
+
+* Recommendation Engine Choice: decision_tree_Tuned (Utility Score: 0.6378). It provides the optimal Pareto trade-off between predictive accuracy and demographic fairness.
+
+Adult Income Performance Summary:
+- Baseline Features: 48,842 records, 109 sparse features.
+- Extended/Clean Features: 48,842 records, 109 features.
+
+| Model                      | Status         | Accuracy | F1-Score | ROC-AUC | DP Diff | EO Diff |
+| :------------------------- | :------------- | :------: | :------: | :-----: | :-----: | :-----: |
+| Random Forest (Baseline)   | Reproduction   |  85.54%  |  66.08%  |  90.15% |  0.1390 |  0.0880 |
+| Random Forest (Extended)   | Leakage-Free   |  85.54%  |  66.08%  |  90.15% |  0.1390 |  0.0880 |
+| XGBoost (Tuned)            | Grid Search    |  87.82%  |  71.49%  |  92.74% |  0.1784 |  0.1082 |
+| LightGBM (Tuned)           | Grid Search    |  87.35%  |  71.18%  |  92.65% |  0.1792 |  0.1104 |
+| CatBoost (Tuned)           | Grid Search    |  87.52%  |  71.34%  |  92.70% |  0.1789 |  0.1095 |
+
+* Recommendation Engine Choice: xgboost_Tuned (Utility Score: 0.8616). It achieves excellent generalization performance while maintaining robust classification margins.
+
+
+--------------------------------------------------------------------------------
+4. MULTI-PAGE DASHBOARD & SESSION STATE PERSISTENCE
+--------------------------------------------------------------------------------
+The Navigation Challenge:
+In standard Streamlit multi-page structures, navigation away from a page prunes any session state key tied directly to an unrendered widget. For example, if app.py has a selectbox with key="selected_dataset", moving to 1_Dataset_Overview.py (which did not draw that selectbox) automatically purged "selected_dataset" from memory, defaulting back to "compas".
+
+The Solution: Decoupled State Handshake
+We created a modular sidebar helper in src/dashboard/components/sidebar.py. It separates the persistent session state variable from the active selectbox widget:
+
+- Decoupled Widget: The selectbox binds to a temporary DOM key ("dataset_selectbox_widget").
+- State Verification: Upon page transition, the persistent state key ("selected_dataset") remains unchanged because it was not directly bound to the deleted widget.
+- Event Hook: When a new dataset choice is picked, the selectbox updates the persistent session state key and runs st.rerun() to apply configurations.
+
+Advantages:
+1. Universal Navigation Control: Users can change datasets from any subpage.
+2. State Persistence: Streamlit retains the memory state across all page changes.
+3. Dynamic Re-rendering: Rerunning ensures paths and visualization buffers adjust instantly.
+
+
+--------------------------------------------------------------------------------
+5. SUMMARY AND VERIFICATION COMPLETE
+--------------------------------------------------------------------------------
+- Test Suite: Verified via pytest (7 out of 7 unit tests passed).
+- Execution Outputs: Both datasets have fully populated directories under results/{dataset}/comparison/ and reports/{dataset}/.
+- Stand-alone Comparison: Run compare_results.py to merge all records into results/comparison_report.csv.
+- Launch Command: Run "streamlit run src/dashboard/app.py" to launch the persistent, interactive interface.

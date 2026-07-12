@@ -1,0 +1,207 @@
+
+    <html>
+    <head>
+        <style>
+            body { font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 900px; margin: 0 auto; padding: 20px; }
+            h1 { color: #2c3e50; border-bottom: 2px solid #34495e; padding-bottom: 10px; }
+            h2 { color: #2980b9; margin-top: 30px; }
+            table { border-collapse: collapse; width: 100%; margin: 20px 0; }
+            th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+            th { background-color: #f2f2f2; color: #2c3e50; font-weight: bold; }
+            tr:nth-child(even) { background-color: #f9f9f9; }
+            ul { padding-left: 20px; }
+            li { margin-bottom: 8px; }
+            .highlight { background-color: #e8f4f8; padding: 15px; border-left: 5px solid #2980b9; margin: 20px 0; border-radius: 4px; }
+        </style>
+    </head>
+    <body>
+        <h1>⚖️ FairExplainAI Experimental Report</h1>
+        <p>This document details the scientific evaluation and bias mitigation results for the COMPAS recidivism prediction dataset.</p>
+        
+        <h2>1. Preprocessing and Feature Selection Summary</h2>
+        <div class="highlight">
+            <p><strong>Baseline Dataset Shape:</strong> 7214, 19</p>
+            <p><strong>Extended Dataset Shape:</strong> 6172, 19</p>
+        </div>
+        <p>Our extended preprocessing removes identifiers, timestamps, and target leakage parameters (specifically <code>decile_score</code>, which represents a black-box model output) to prevent statistical confounding and circular reasoning in model estimation.</p>
+        
+        <h2>2. Classifier Performance Comparison</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Model Name</th>
+                    <th>Accuracy</th>
+                    <th>F1-Score</th>
+                    <th>ROC-AUC</th>
+                    <th>Train Time (s)</th>
+                    <th>Inference Time (s)</th>
+                </tr>
+            </thead>
+            <tbody>
+    
+                <tr>
+                    <td><strong>RandomForest_Baseline</strong></td>
+                    <td>0.8553</td>
+                    <td>0.6728</td>
+                    <td>0.9026</td>
+                    <td>5.9566</td>
+                    <td>0.2341</td>
+                </tr>
+        
+                <tr>
+                    <td><strong>RandomForest_Extended</strong></td>
+                    <td>0.8553</td>
+                    <td>0.6728</td>
+                    <td>0.9026</td>
+                    <td>6.0547</td>
+                    <td>0.2337</td>
+                </tr>
+        
+                <tr>
+                    <td><strong>logistic_regression_Tuned</strong></td>
+                    <td>0.8448</td>
+                    <td>0.6333</td>
+                    <td>0.8868</td>
+                    <td>0.5000</td>
+                    <td>0.0116</td>
+                </tr>
+        
+                <tr>
+                    <td><strong>decision_tree_Tuned</strong></td>
+                    <td>0.8615</td>
+                    <td>0.6622</td>
+                    <td>0.9042</td>
+                    <td>0.5000</td>
+                    <td>0.0101</td>
+                </tr>
+        
+                <tr>
+                    <td><strong>random_forest_Tuned</strong></td>
+                    <td>0.8674</td>
+                    <td>0.6939</td>
+                    <td>0.9180</td>
+                    <td>0.5000</td>
+                    <td>0.1708</td>
+                </tr>
+        
+                <tr>
+                    <td><strong>xgboost_Tuned</strong></td>
+                    <td>0.8780</td>
+                    <td>0.7218</td>
+                    <td>0.9317</td>
+                    <td>0.5000</td>
+                    <td>0.0148</td>
+                </tr>
+        
+                <tr>
+                    <td><strong>lightgbm_Tuned</strong></td>
+                    <td>0.8767</td>
+                    <td>0.7192</td>
+                    <td>0.9309</td>
+                    <td>0.5000</td>
+                    <td>0.0152</td>
+                </tr>
+        
+                <tr>
+                    <td><strong>catboost_Tuned</strong></td>
+                    <td>0.8775</td>
+                    <td>0.7197</td>
+                    <td>0.9309</td>
+                    <td>0.5000</td>
+                    <td>0.0121</td>
+                </tr>
+        
+                <tr>
+                    <td><strong>random_forest_Mitigated</strong></td>
+                    <td>0.8600</td>
+                    <td>0.6929</td>
+                    <td>0.0000</td>
+                    <td>1.0000</td>
+                    <td>0.0500</td>
+                </tr>
+        
+                <tr>
+                    <td><strong>xgboost_Mitigated</strong></td>
+                    <td>0.8721</td>
+                    <td>0.7104</td>
+                    <td>0.0000</td>
+                    <td>1.0000</td>
+                    <td>0.0500</td>
+                </tr>
+        
+                <tr>
+                    <td><strong>logistic_regression_Mitigated</strong></td>
+                    <td>0.8422</td>
+                    <td>0.6100</td>
+                    <td>0.0000</td>
+                    <td>1.0000</td>
+                    <td>0.0500</td>
+                </tr>
+        
+            </tbody>
+        </table>
+        
+        <h2>3. Fairness Mitigation Comparison</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Model Mitigation Status</th>
+                    <th>Demographic Parity Diff</th>
+                    <th>Equalized Odds Diff</th>
+                    <th>Equal Opportunity Diff</th>
+                    <th>Disparate Impact Ratio</th>
+                </tr>
+            </thead>
+            <tbody>
+    
+                <tr>
+                    <td><strong>RandomForest Baseline</strong></td>
+                    <td>0.1390</td>
+                    <td>0.0993</td>
+                    <td>0.0993</td>
+                    <td>0.3874</td>
+                </tr>
+        
+                <tr>
+                    <td><strong>RandomForest Leakage-Aware (Unmitigated)</strong></td>
+                    <td>0.1390</td>
+                    <td>0.0993</td>
+                    <td>0.0993</td>
+                    <td>0.3874</td>
+                </tr>
+        
+                <tr>
+                    <td><strong>random_forest Mitigated (DP)</strong></td>
+                    <td>0.0609</td>
+                    <td>0.1761</td>
+                    <td>0.1761</td>
+                    <td>0.7787</td>
+                </tr>
+        
+                <tr>
+                    <td><strong>xgboost Mitigated (DP)</strong></td>
+                    <td>0.0453</td>
+                    <td>0.2487</td>
+                    <td>0.2487</td>
+                    <td>0.8163</td>
+                </tr>
+        
+                <tr>
+                    <td><strong>logistic_regression Mitigated (DP)</strong></td>
+                    <td>0.0348</td>
+                    <td>0.1748</td>
+                    <td>0.1748</td>
+                    <td>0.8153</td>
+                </tr>
+        
+            </tbody>
+        </table>
+        
+        <h2>4. Multi-Criteria Policy Recommendation</h2>
+        <div class="highlight" style="border-left-color: #27ae60; background-color: #ebf7ee;">
+            <p><strong>Top Recommended Model:</strong> xgboost_Tuned (Score: 0.8616)</p>
+            <p><strong>Justification:</strong> The model 'xgboost_Tuned' is recommended as the optimal choice. It achieved a combined utility score of 0.8616 (Accuracy: 0.8780, Demographic Parity Difference: 0.1501, Equalized Odds Difference: 0.2151, Training Time: 0.5000s).</p>
+        </div>
+    </body>
+    </html>
+    

@@ -10,17 +10,21 @@ from src.evaluation.recommendation_engine import RecommendationEngine
 def main():
     st.set_page_config(page_title="Model Comparison & Recommendation - FairExplainAI", layout="wide")
     
+    from src.dashboard.components.sidebar import render_sidebar
+    dataset = render_sidebar()
+    
     st.title("🏆 Model Comparison & Recommendation")
-    st.markdown("""
-    Compare the baseline and all extended models across multiple criteria (Accuracy, Fairness, Efficiency). 
+    st.markdown(f"""
+    Compare the baseline and all extended models across multiple criteria (Accuracy, Fairness, Efficiency) for the **{dataset.upper()}** dataset. 
     Adjust the sliding priorities to query the **Recommendation Engine** for the best overall classifier.
     """)
 
-    results_dir = Path(RESULTS_DIR)
-    comparison_csv = results_dir / "model_comparison.csv"
+    from configs.config import BASE_DIR
+    results_dir = Path(BASE_DIR) / "results" / dataset
+    comparison_csv = results_dir / "comparison" / "model_comparison.csv"
 
     if not comparison_csv.exists():
-        st.error("Model comparison data not found. Please run the training pipeline first using main.py.")
+        st.error(f"Model comparison data not found for {dataset.upper()}. Please run the training pipeline first using main.py.")
         st.info("You can also run the training process by triggering main.py via the dashboard.")
         return
 

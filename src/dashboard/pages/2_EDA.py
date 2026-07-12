@@ -8,17 +8,23 @@ from configs.config import PROCESSED_PATH
 def main():
     st.set_page_config(page_title="EDA - FairExplainAI", layout="wide")
     
+    from src.dashboard.components.sidebar import render_sidebar
+    dataset = render_sidebar()
+    
+    from configs.config import DATASET_CONFIG
+    target_column = DATASET_CONFIG[dataset]["target"]
+    
     st.title("📈 Exploratory Data Analysis")
-    st.markdown("""
-    Explore the distributions, correlations, and potential biases in the processed COMPAS dataset.
+    st.markdown(f"""
+    Explore the distributions, correlations, and potential biases in the processed **{dataset.upper()}** dataset.
     Visualizing these characteristics helps identify group disparities *before* training model classifiers.
     """)
 
     processed_dir = Path(PROCESSED_PATH)
-    extended_raw_path = processed_dir / "compas_extended_raw.csv"
+    extended_raw_path = processed_dir / f"{dataset}_extended_raw.csv"
 
     if not extended_raw_path.exists():
-        st.error("Processed dataset files not found. Please run the training pipeline first.")
+        st.error(f"Processed dataset files not found for {dataset.upper()}. Please run the training pipeline first.")
         return
 
     df = pd.read_csv(extended_raw_path)
@@ -30,10 +36,13 @@ def main():
     col1, col2 = st.columns(2)
 
     with col1:
-        st.subheader("⚖️ Recidivism Target Distribution (two_year_recid)")
+        st.subheader(f"⚖️ Target Distribution ({target_column})")
         fig, ax = plt.subplots(figsize=(6, 4))
-        sns.countplot(data=df, x="two_year_recid", palette="Set2", ax=ax)
-        ax.set_xticklabels(["Did Not Recidivate (0)", "Recidivated (1)"])
+        sns.countplot(data=df, x=target_column, palette="Set2", ax=ax)
+        if dataset == "compas":
+            ax.set_xticklabels(["Did Not Recidivate (0)", "Recidivated (1)"])
+        else:
+            ax.set_xticklabels(["<=50K (0)", ">50K (1)"])
         ax.set_xlabel("Target Class")
         ax.set_ylabel("Count")
         st.pyplot(fig)
@@ -52,33 +61,31 @@ def main():
     col3, col4 = st.columns(2)
 
     with col3:
-        st.subheader("📊 Recidivism Rate by Race")
-        # Recidivism rate (mean target) per race
-        recid_by_race = df.groupby("race")["two_year_recid"].mean().reset_index().sort_values(by="two_year_recid")
+        target_name = "Recidivism Rate" if dataset == "compas" else "High-Income Fraction (>50K)"
+        st.subheader(f"📊 {target_name} by Race")
+        recid_by_race = df.groupby("race")[target_column].mean().reset_index().sort_values(by=target_column)
         fig, ax = plt.subplots(figsize=(6, 4))
-        sns.barplot(data=recid_by_race, x="two_year_recid", y="race", palette="coolwarm", ax=ax)
-        ax.set_xlabel("Recidivism Rate")
+        sns.barplot(data=recid_by_race, x=target_column, y="race", palette="coolwarm", ax=ax)
+        ax.set_xlabel(target_name)
         ax.set_ylabel("Race")
         st.pyplot(fig)
         plt.close()
 
     with col4:
-        st.subheader("📊 Recidivism Rate by Gender")
-        recid_by_sex = df.groupby("sex")["two_year_recid"].mean().reset_index()
+        st.subheader(f"📊 {target_name} by Gender")
+        recid_by_sex = df.groupby("sex")[target_column].mean().reset_index()
         fig, ax = plt.subplots(figsize=(6, 4))
-        sns.barplot(data=recid_by_sex, x="sex", y="two_year_recid", palette="Set1", ax=ax)
+        sns.barplot(data=recid_by_sex, x="sex", y=target_column, palette="Set1", ax=ax)
         ax.set_xlabel("Gender")
-        ax.set_ylabel("Recidivism Rate")
+        ax.set_ylabel(target_name)
         st.pyplot(fig)
         plt.close()
 
     # Correlation Matrix
     st.subheader("🔗 Feature Correlation Heatmap")
-    # For correlation, we need the encoded dataset
-    extended_encoded_path = processed_dir / "compas_extended.csv"
+    extended_encoded_path = processed_dir / f"{dataset}_extended.csv"
     if extended_encoded_path.exists():
         df_encoded = pd.read_csv(extended_encoded_path)
-        # Select numeric and encoded columns
         corr = df_encoded.corr()
         fig, ax = plt.subplots(figsize=(10, 8))
         sns.heatmap(corr, annot=False, cmap="coolwarm", fmt=".2f", linewidths=0.5, ax=ax)

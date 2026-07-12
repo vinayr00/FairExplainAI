@@ -5,19 +5,23 @@ from configs.config import REPORTS_DIR
 def main():
     st.set_page_config(page_title="Download Reports - FairExplainAI", layout="wide")
     
+    from src.dashboard.components.sidebar import render_sidebar
+    dataset = render_sidebar()
+    
     st.title("📥 Export & Download Reports")
-    st.markdown("""
+    st.markdown(f"""
     Retrieve and download pre-generated summary reports of dataset profiles, model comparison lists, 
-    and fairness metrics evaluation.
+    and fairness metrics evaluation for the **{dataset.upper()}** dataset.
     """)
 
-    reports_dir = Path(REPORTS_DIR)
+    from configs.config import BASE_DIR
+    reports_dir = Path(BASE_DIR) / "reports" / dataset
     md_path = reports_dir / "summary_report.md"
     html_path = reports_dir / "summary_report.html"
     json_path = reports_dir / "summary_report.json"
 
     if not md_path.exists() or not html_path.exists():
-        st.error("Pre-generated reports not found. Please run the training pipeline first using main.py.")
+        st.error(f"Pre-generated reports not found for {dataset.upper()}. Please run the training pipeline first using main.py.")
         return
 
     # Load contents

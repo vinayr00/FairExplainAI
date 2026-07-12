@@ -4,6 +4,7 @@ Feature Configuration
 This file defines which columns should be
 used or removed during preprocessing.
 """
+from configs.config import DATASET, TARGET_COLUMN, PROTECTED_ATTRIBUTES
 
 # -----------------------------
 # Identifier Columns
@@ -82,36 +83,26 @@ DUPLICATE_COLUMNS = [
 ]
 
 # -----------------------------
-# Target
+# Target & Sensitive attributes (derived from config)
 # -----------------------------
-TARGET_COLUMN = "two_year_recid"
+# (Imports TARGET_COLUMN and PROTECTED_ATTRIBUTES from configs.config)
 
 # -----------------------------
-PROTECTED_ATTRIBUTES = [
-    "race",
-    "sex"
-]
+# Dynamic Features for Model Input
+# -----------------------------
+FEATURE_CONFIG = {
+    "compas": {
+        "categorical": ["sex", "age_cat", "race", "c_charge_degree"],
+        "numerical": ["age", "priors_count", "juv_fel_count", "juv_misd_count", "juv_other_count"]
+    },
+    "adult": {
+        "categorical": ["workclass", "education", "marital-status", "occupation", "relationship", "race", "sex", "native-country"],
+        "numerical": ["age", "fnlwgt", "education-num", "capital-gain", "capital-loss", "hours-per-week"]
+    }
+}
 
-# -----------------------------
-# Categorical Features for Model Input
-# -----------------------------
-CATEGORICAL_FEATURES = [
-    "sex",
-    "age_cat",
-    "race",
-    "c_charge_degree",
-]
-
-# -----------------------------
-# Numerical Features for Model Input
-# -----------------------------
-NUMERICAL_FEATURES = [
-    "age",
-    "priors_count",
-    "juv_fel_count",
-    "juv_misd_count",
-    "juv_other_count",
-]
+CATEGORICAL_FEATURES = FEATURE_CONFIG[DATASET]["categorical"]
+NUMERICAL_FEATURES = FEATURE_CONFIG[DATASET]["numerical"]
 
 # -----------------------------
 # Columns to drop during loading / cleaning

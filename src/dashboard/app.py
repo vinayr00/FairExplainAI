@@ -39,27 +39,34 @@ def main():
     
     st.markdown('<div class="title-text">⚖️ FairExplainAI Framework</div>', unsafe_allow_html=True)
     
-    st.markdown("""
+    from src.dashboard.components.sidebar import render_sidebar
+    selected_dataset = render_sidebar()
+    
+    # Descriptions based on dataset
+    if selected_dataset == "compas":
+        dataset_description = "criminal recidivism predictions using the <strong>COMPAS dataset</strong>"
+    else:
+        dataset_description = "high income predictions (>50K) using the <strong>Adult Income dataset</strong>"
+
+    st.markdown(f"""
     <p class="main-description">
     Welcome to the <strong>FairExplainAI</strong> interactive model analysis dashboard. 
-    This framework is built to evaluate, mitigate, and explain machine learning biases in criminal recidivism predictions using the <strong>COMPAS dataset</strong>. 
+    This framework is built to evaluate, mitigate, and explain machine learning biases in {dataset_description}. 
     Rather than introducing new algorithms, we reproduce the original Random Forest baseline and extend it through 
     leakage-aware preprocessing, multiple ML architectures, and post-processing fairness adjustments.
     </p>
     """, unsafe_allow_html=True)
-    
-    st.sidebar.title("Navigation Info")
-    st.sidebar.info("Use the sidebar pages to explore: \n- Dataset & EDA\n- Interactive Model Training\n- Fairness Mitigation\n- SHAP & Counterfactual Explanations\n- Model Comparisons & Policy Recommendations")
 
-    # Load summary report if it exists to display stats on landing page
-    reports_dir = Path(REPORTS_DIR)
+    # Dynamic path resolution based on active selection
+    from configs.config import BASE_DIR
+    reports_dir = Path(BASE_DIR) / "reports" / selected_dataset
     summary_path = reports_dir / "summary_report.json"
     
     if summary_path.exists():
         with open(summary_path, "r") as f:
             summary = json.load(f)
             
-        st.subheader("📊 Latest Experimental Run Highlights")
+        st.subheader(f"📊 Latest Experimental Run Highlights ({selected_dataset.upper()})")
         
         col1, col2, col3 = st.columns(3)
         with col1:
@@ -85,8 +92,7 @@ def main():
             
         st.info(f"**Policy Justification**: {rec.get('justification', 'No recommendation generated yet.')}")
     else:
-        st.warning("⚠️ No summary report found. Please run the training pipeline first using main.py to populate this dashboard.")
-
+        st.warning(f"⚠️ No summary report found for {selected_dataset.upper()}. Please run the training pipeline first using main.py (with DATASET='{selected_dataset}' in configs/config.py) to populate this dashboard.")
     st.subheader("📚 IEEE Research Objectives Covered")
     st.markdown("""
     - **Experiment A**: Baseline Paper Reproduction (Random Forest, raw features).
@@ -97,7 +103,7 @@ def main():
     - **Experiment F**: Counterfactual Explanations via DiCE.
     - **Experiment H**: Multi-Criteria recommendation engine selection.
     """)
-
+ 
 if __name__ == "__main__":
     main()
 

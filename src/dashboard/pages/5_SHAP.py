@@ -12,22 +12,28 @@ from src.explainability.shap_explainer import generate_shap_values
 def main():
     st.set_page_config(page_title="SHAP Explanations - FairExplainAI", layout="wide")
     
+    from src.dashboard.components.sidebar import render_sidebar
+    dataset = render_sidebar()
+    
+    from configs.config import DATASET_CONFIG
+    target_column = DATASET_CONFIG[dataset]["target"]
+    
     st.title("🧩 SHAP Explainability")
-    st.markdown("""
-    Interpret model decisions globally and locally using **SHAP (SHapley Additive exPlanations)**.
-    Understand which features push the model's prediction higher (increasing estimated risk of recidivism) or lower.
+    st.markdown(f"""
+    Interpret model decisions globally and locally using **SHAP (SHapley Additive exPlanations)** on the **{dataset.upper()}** dataset.
+    Understand which features push the model's prediction higher or lower.
     """)
 
     processed_dir = Path(PROCESSED_PATH)
-    extended_path = processed_dir / "compas_extended.csv"
+    extended_path = processed_dir / f"{dataset}_extended.csv"
 
     if not extended_path.exists():
-        st.error("Processed datasets not found. Run main.py first.")
+        st.error(f"Processed datasets not found for {dataset.upper()}. Run main.py first.")
         return
 
     df = pd.read_csv(extended_path)
-    X = df.drop(columns=[TARGET_COLUMN])
-    y = df[TARGET_COLUMN]
+    X = df.drop(columns=[target_column])
+    y = df[target_column]
 
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=TEST_SIZE, random_state=RANDOM_STATE, stratify=y
@@ -66,7 +72,7 @@ def main():
         case_idx = st.number_input("Test Case Index", min_value=0, max_value=len(X_test)-1, value=0)
         
         # Display case features
-        st.write("Offender Feature Profile:")
+        st.write("Instance Feature Profile:")
         st.dataframe(X_test.iloc[[case_idx]], use_container_width=True)
 
         with st.spinner("Generating waterfall explanation..."):

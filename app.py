@@ -14,6 +14,14 @@ if __name__ == "__main__":
         import importlib
         stcli = importlib.import_module("streamlit.cli")
     
-    # Run the dashboard app entry point
-    sys.argv = ["streamlit", "run", str(root_dir / "src" / "dashboard" / "app.py")]
+    # Run the dashboard app entry point with production configuration
+    sys.argv = [
+        "streamlit", 
+        "run", 
+        str(root_dir / "src" / "dashboard" / "app.py"),
+        "--server.port=8501",
+        "--server.address=0.0.0.0",
+        "--server.headless=true",
+        "--browser.gatherUsageStats=false"
+    ]
     sys.exit(stcli.main())

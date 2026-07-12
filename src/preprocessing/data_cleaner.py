@@ -46,22 +46,29 @@ class DataCleaner:
 
     def handle_missing_values(self, df: pd.DataFrame) -> pd.DataFrame:
         """Handles any remaining missing values in critical feature columns."""
+        from configs.config import TARGET_COLUMN, PROTECTED_ATTRIBUTES
+        from src.preprocessing.feature_config import NUMERICAL_FEATURES
+
         df_clean = df.copy()
+        
         # Drop rows where target or protected attributes are missing
-        critical_cols = ["two_year_recid", "race", "sex"]
+        critical_cols = [TARGET_COLUMN] + PROTECTED_ATTRIBUTES
         existing_critical = [col for col in critical_cols if col in df_clean.columns]
         df_clean = df_clean.dropna(subset=existing_critical)
         
         # Fill numerical features with median
-        num_cols = ["priors_count", "juv_fel_count", "juv_misd_count", "juv_other_count"]
-        for col in num_cols:
+        for col in NUMERICAL_FEATURES:
             if col in df_clean.columns:
                 df_clean[col] = df_clean[col].fillna(df_clean[col].median())
 
         return df_clean
 
-    def clean(self, df: pd.DataFrame, is_compas: bool = True) -> pd.DataFrame:
+    def clean(self, df: pd.DataFrame, is_compas: bool = None) -> pd.DataFrame:
         """Executes the full pipeline of data cleaning steps."""
+        from configs.config import DATASET
+        if is_compas is None:
+            is_compas = (DATASET == "compas")
+            
         if is_compas:
             df = self.filter_compas_standards(df)
         df = self.handle_missing_values(df)

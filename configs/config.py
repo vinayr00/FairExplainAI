@@ -3,11 +3,31 @@ from pathlib import Path
 # General Settings
 RANDOM_STATE = 42
 TEST_SIZE = 0.2
-TARGET_COLUMN = "two_year_recid"
-PROTECTED_ATTRIBUTES = ["race", "sex"]
 
-# Paths
-DATASET_PATH = "data/raw/compas-scores-two-years.csv"
+# Active Dataset Selection
+DATASET = "compas"  # "compas" or "adult"
+
+DATASET_CONFIG = {
+    "compas": {
+        "dataset_path": "data/raw/compas-scores-two-years.csv",
+        "target": "two_year_recid",
+        "protected": ["race", "sex"],
+        "sensitive": "race"
+    },
+    "adult": {
+        "dataset_path": "data/raw/adult/",
+        "target": "income",
+        "protected": ["race", "sex"],
+        "sensitive": "race"
+    }
+}
+
+# Dynamic Lookups based on selected dataset
+DATASET_PATH = DATASET_CONFIG[DATASET]["dataset_path"]
+TARGET_COLUMN = DATASET_CONFIG[DATASET]["target"]
+PROTECTED_ATTRIBUTES = DATASET_CONFIG[DATASET]["protected"]
+SENSITIVE_ATTRIBUTE = DATASET_CONFIG[DATASET]["sensitive"]
+
 PROCESSED_PATH = "data/processed/"
 
 # Base Directory of the Project
@@ -15,17 +35,31 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Output Directories
 LOGS_DIR = BASE_DIR / "logs"
-RESULTS_DIR = BASE_DIR / "results"
-FIGURES_DIR = BASE_DIR / "figures"
-REPORTS_DIR = BASE_DIR / "reports"
-SAVED_MODELS_DIR = BASE_DIR / "saved_models"
+RESULTS_DIR = BASE_DIR / "results" / DATASET
+FIGURES_DIR = BASE_DIR / "figures" / DATASET
+REPORTS_DIR = BASE_DIR / "reports" / DATASET
+SAVED_MODELS_DIR = BASE_DIR / "saved_models" / DATASET
 
 # Ensure runtime directories exist
 for directory in [
-    LOGS_DIR, REPORTS_DIR, SAVED_MODELS_DIR, 
-    SAVED_MODELS_DIR / "baseline", SAVED_MODELS_DIR / "improved",
-    RESULTS_DIR, RESULTS_DIR / "baseline", RESULTS_DIR / "improved", RESULTS_DIR / "comparison",
-    FIGURES_DIR, FIGURES_DIR / "eda", FIGURES_DIR / "fairness", FIGURES_DIR / "explainability", FIGURES_DIR / "paper"
+    LOGS_DIR,
+    BASE_DIR / "reports",
+    BASE_DIR / "saved_models",
+    BASE_DIR / "results",
+    BASE_DIR / "figures",
+    REPORTS_DIR, 
+    SAVED_MODELS_DIR, 
+    SAVED_MODELS_DIR / "baseline", 
+    SAVED_MODELS_DIR / "improved",
+    RESULTS_DIR, 
+    RESULTS_DIR / "baseline", 
+    RESULTS_DIR / "improved", 
+    RESULTS_DIR / "comparison",
+    FIGURES_DIR, 
+    FIGURES_DIR / "eda", 
+    FIGURES_DIR / "fairness", 
+    FIGURES_DIR / "explainability", 
+    FIGURES_DIR / "paper"
 ]:
     directory.mkdir(parents=True, exist_ok=True)
 
