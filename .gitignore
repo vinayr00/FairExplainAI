@@ -164,5 +164,5 @@ cython_debug/
 # App specific exclusions
 /logs/
 /saved_models/
-/data/processed/
+#/data/processed/
 /catboost_info/
