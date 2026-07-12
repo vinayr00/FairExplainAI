@@ -81,7 +81,7 @@ def main():
                 dice_exp = generate_counterfactuals(
                     model=model,
                     query_instances=query_instance,
-                    data_interface=df_raw,
+                    data_interface=df,
                     outcome_name=target_column,
                     continuous_features=continuous_cols,
                     total_CFs=total_cfs
