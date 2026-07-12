@@ -118,7 +118,7 @@ def main():
                 "Mitigated Accuracy": mf_mit.by_group["accuracy"].values,
             })
             
-            st.dataframe(df_compare, use_container_width=True)
+            st.dataframe(df_compare, width="stretch")
             
         except Exception as e:
             st.error(f"Failed to fit model or apply mitigation: {e}")

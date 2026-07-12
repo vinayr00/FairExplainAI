@@ -44,7 +44,7 @@ def main():
     # Show the raw profile
     st.markdown("**Original Case Profile:**")
     original_profile = df_test_raw.iloc[[case_idx]]
-    st.dataframe(original_profile, use_container_width=True)
+    st.dataframe(original_profile, width="stretch")
 
     gen_btn = st.button("🔄 Generate Counterfactual Explanations")
 
@@ -88,7 +88,7 @@ def main():
                 if dice_exp:
                     st.markdown("**Diverse Counterfactual Examples (Flipped prediction):**")
                     cf_df = dice_exp.cf_examples_list[0].final_cfs_df
-                    st.dataframe(cf_df, use_container_width=True)
+                    st.dataframe(cf_df, width="stretch")
                     st.info("The columns above highlight how the features could change to output the opposite risk category.")
                 else:
                     st.warning("Could not generate counterfactuals for this profile.")

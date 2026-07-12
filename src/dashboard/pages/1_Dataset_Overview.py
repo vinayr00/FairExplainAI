@@ -67,12 +67,12 @@ def main():
     
     with tab1:
         st.markdown(f"**Baseline Dataset Sample** (showing first 10 rows):")
-        st.dataframe(df_base.head(10), use_container_width=True)
+        st.dataframe(df_base.head(10), width="stretch")
         st.info(f"Target Column: `{target_column}` | Protected Attributes: `{', '.join(protected_attributes)}`")
 
     with tab2:
         st.markdown(f"**Extended Dataset Sample** (showing first 10 rows):")
-        st.dataframe(df_ext.head(10), use_container_width=True)
+        st.dataframe(df_ext.head(10), width="stretch")
         st.info(f"Notice that administrative columns and unwanted features have been handled/removed in the extended dataset.")
 
 if __name__ == "__main__":

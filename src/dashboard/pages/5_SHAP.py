@@ -67,7 +67,7 @@ def main():
         
         # Display case features
         st.write("Instance Feature Profile:")
-        st.dataframe(X_test.iloc[[case_idx]], use_container_width=True)
+        st.dataframe(X_test.iloc[[case_idx]], width="stretch")
 
         with st.spinner("Generating waterfall explanation..."):
             single_shap = generate_shap_values(model, X_test.iloc[[case_idx]])

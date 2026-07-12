@@ -92,7 +92,7 @@ def main():
         "Demographic Parity Diff": "{:.4f}",
         "Equalized Odds Diff": "{:.4f}",
         "Train Time (s)": "{:.4f}"
-    }), use_container_width=True)
+    }), width="stretch")
 
     # Plot Tradeoff (Accuracy vs Demographic Parity Difference)
     st.subheader("📉 Fairness-Accuracy Pareto Frontier")
